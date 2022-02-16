@@ -1,0 +1,109 @@
+---
+title: "Project_1_Johnson"
+Author: Will Johnson
+output:
+  html_document: default
+  pdf_document: default
+---
+## Choropleths
+## Original Author: Vladimir Agafonkin
+## How to make a Choropleth
+## Link to original vignette: http://rstudio.github.io/leaflet/choropleths.html
+
+# Links I found Helpful:
+
+# https://usafacts.org/visualizations/coronavirus-covid-19-spread-map/state/alabama
+# http://geojson.io/#map=2/20.0/0.0
+# https://rstudio.github.io/leaflet/json/us-states.geojson
+# https://walker-data.com/mapboxapi/
+
+```{r}
+library(leaflet)
+
+library(mapboxapi)
+mb_access_token("pk.eyJ1Ijoid2Nqb2huczEwIiwiYSI6ImNrenB6ZnVoajAyZzAydXFrNmg1MDN0OWMifQ.nPOd15r7dYQyq3KGOnZk8Q", install = TRUE, overwrite = TRUE)
+```
+
+
+```{r}
+states <- geojsonio::geojson_read("https://raw.githubusercontent.com/wcjohns10/comma/main/final.geojson", what = "sp")
+class(states)
+```
+
+```{r}
+names(states)
+```
+
+```{r}
+m <- leaflet(states) %>%
+  setView(-96, 37.8, 4) %>%
+  addProviderTiles("MapBox", options = providerTileOptions(
+    id = "mapbox.light",
+    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN')))
+```
+
+```{r}
+m %>% addPolygons()
+```
+
+```{r}
+bins <- c(0, 100, 1000, 5000, 10000, 20000, 50000, 800000, Inf)
+pal <- colorBin("BuPu", domain = states$deaths, bins = bins)
+
+m %>% addPolygons(
+  fillColor = ~pal(deaths),
+  weight = 2,
+  opacity = 1,
+  color = "black",
+  dashArray = "3",
+  fillOpacity = 0.7)
+```
+
+```{r}
+m %>% addPolygons(
+  fillColor = ~pal(deaths),
+  weight = 2,
+  opacity = 1,
+  color = "black",
+  dashArray = "3",
+  fillOpacity = 0.7,
+  highlightOptions = highlightOptions(
+    weight = 5,
+    color = "#666",
+    dashArray = "",
+    fillOpacity = 0.7,
+    bringToFront = TRUE))
+```
+
+```{r}
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g Covid Deaths",
+  states$name, states$deaths
+) %>% lapply(htmltools::HTML)
+
+m <- m %>% addPolygons(
+  fillColor = ~pal(deaths),
+  weight = 2,
+  opacity = 1,
+  color = "black",
+  dashArray = "3",
+  fillOpacity = 0.7,
+  highlightOptions = highlightOptions(
+    weight = 5,
+    color = "#666",
+    dashArray = "",
+    fillOpacity = 0.7,
+    bringToFront = TRUE),
+  label = labels,
+  labelOptions = labelOptions(
+    style = list("font-weight" = "normal", padding = "3px 8px"),
+    textsize = "15px",
+    direction = "auto"))
+m
+```
+
+```{r}
+m %>% addLegend(pal = pal, values = ~deaths, opacity = 0.7, title = NULL,
+  position = "bottomright")
+```
+
